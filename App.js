@@ -426,8 +426,8 @@ export default function App() {
               Dashboard: focused ? "speedometer" : "speedometer-outline",
               เพิ่มรายการ: focused ? "add-circle" : "add-circle-outline",
               ประวัติ: focused ? "list" : "list-outline",
-              Rider: focused ? "bicycle" : "bicycle-outline",
-              กะงาน: focused ? "time" : "time-outline",
+              "เช็คงาน": focused ? "bicycle" : "bicycle-outline",
+              "เงินก่อนเริ่มงาน": focused ? "cash" : "cash-outline",
             };
             return <Ionicons name={icons[route.name]} size={26} color={color} />;
           },
@@ -442,6 +442,7 @@ export default function App() {
     </NavigationContainer>
   );
 }
+
 
 
 
