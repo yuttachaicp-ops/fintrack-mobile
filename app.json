@@ -1,39 +1,39 @@
-{
-  "expo": {
-    "name": "บันทึกการเงิน",
-    "slug": "fintrack-mobile",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "package": "com.sugartanny.fintrackmobile",
-      "navigationBar": {
-        "visible": "immersive"
-      }
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "a2a4751a-0d5b-4ebf-bcfd-502587bcaf7b"
-      }
-    },
-    "owner": "tns-studio"
-  }
+﻿{
+    "expo":  {
+                 "name":  "à¸šà¸±à¸™à¸—à¸¶à¸à¸à¸²à¸£à¹€à¸‡à¸´à¸™",
+                 "slug":  "fintrack-mobile",
+                 "version":  "1.0.0",
+                 "orientation":  "portrait",
+                 "icon":  "./assets/icon.png",
+                 "userInterfaceStyle":  "light",
+                 "newArchEnabled":  true,
+                 "splash":  {
+                                "image":  "./assets/splash-icon.png",
+                                "resizeMode":  "contain",
+                                "backgroundColor":  "#ffffff"
+                            },
+                 "ios":  {
+                             "supportsTablet":  true
+                         },
+                 "android":  {
+                                 "adaptiveIcon":  {
+                                                      "foregroundImage":  "./assets/adaptive-icon.png",
+                                                      "backgroundColor":  "#ffffff"
+                                                  },
+                                 "edgeToEdgeEnabled":  true,
+                                 "navigationBar":  {
+                                                       "visible":  "immersive"
+                                                   },
+                                 "package":  "com.tns.fintrack"
+                             },
+                 "web":  {
+                             "favicon":  "./assets/favicon.png"
+                         },
+                 "extra":  {
+                               "eas":  {
+                                           "projectId":  "a2a4751a-0d5b-4ebf-bcfd-502587bcaf7b"
+                                       }
+                           },
+                 "owner":  "tns-studio"
+             }
 }
