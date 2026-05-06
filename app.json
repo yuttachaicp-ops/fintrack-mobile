@@ -1,6 +1,6 @@
-{
+﻿{
   "expo": {
-    "name": "fintrack-mobile",
+    "name": "บันทึกการเงิน",
     "slug": "fintrack-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -33,3 +33,4 @@
     }
   }
 }
+

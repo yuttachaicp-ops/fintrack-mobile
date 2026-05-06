@@ -61,7 +61,7 @@ function DashboardScreen() {
       <ScrollView showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor="#00D4AA" />}>
         <LinearGradient colors={["#0D1117","#1A1F2E"]} style={s.header}>
-          <Text style={s.headerTitle}>FinTrack 💰</Text>
+          <Text style={s.headerTitle}>บันทึกการเงิน 💰</Text>
           <Text style={s.headerDate}>{new Date().toLocaleDateString("th-TH", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</Text>
         </LinearGradient>
         <LinearGradient colors={isBehind ? ["#FF4757","#C0392B"] : ["#00D4AA","#00B894"]} style={s.riderCard}>
@@ -436,12 +436,15 @@ export default function App() {
         <Tab.Screen name="Dashboard" component={DashboardScreen} />
         <Tab.Screen name="เพิ่มรายการ" component={AddScreen} />
         <Tab.Screen name="ประวัติ" component={HistoryScreen} />
-        <Tab.Screen name="Rider" component={RiderScreen} />
-        <Tab.Screen name="กะงาน" component={CashShiftScreen} />
+        <Tab.Screen name="เช็คงาน" component={RiderScreen} />
+        <Tab.Screen name="เงินก่อนเริ่มงาน" component={CashShiftScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );
 }
+
+
+
 
 
 
