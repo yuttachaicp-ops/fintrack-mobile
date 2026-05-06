@@ -56,7 +56,12 @@ export default function RiderScreen() {
             {/* Main Decision */}
             <Text style={[s.mainText, { color: result.color }]}>{result.mainText}</Text>
             <Text style={s.subText}>{result.subText}</Text>
-            {result.batchLabel && (
+            {result.zoneLabel && (
+                  <View style={[s.batchBadge, { backgroundColor: result.zoneLabel.includes("A") ? "#FFA500" : result.zoneLabel.includes("B") || result.zoneLabel.includes("C") ? "#00C49A" : "#FF3B4E" }]}>
+                    <Text style={s.batchBadgeText}>{result.zoneLabel}</Text>
+                  </View>
+                )}
+                {result.batchLabel && (
               <View style={[s.batchBadge, { backgroundColor: result.color }]}>
                 <Text style={s.batchBadgeText}>{result.batchLabel}</Text>
               </View>
@@ -92,7 +97,13 @@ export default function RiderScreen() {
               </View>
             )}
 
-            <TouchableOpacity style={[s.checkBtn, { backgroundColor: "#1A1F2E" }]} onPress={reset}>
+            {result.suggestion && (
+                  <View style={[s.reasonBox, { borderColor: "#FFA50033", marginBottom: 12 }]}>
+                    <Text style={[s.reasonTitle, { color: "#FFA500" }]}>💡 คำแนะนำ</Text>
+                    <Text style={[s.reasonText, { color: "#FFA500" }]}>{result.suggestion}</Text>
+                  </View>
+                )}
+                <TouchableOpacity style={[s.checkBtn, { backgroundColor: "#1A1F2E" }]} onPress={reset}>
               <Text style={[s.checkBtnText, { color: "#FFFFFF" }]}>← เช็คงานใหม่</Text>
             </TouchableOpacity>
           </ScrollView>
@@ -267,3 +278,4 @@ const s = StyleSheet.create({
   reasonTitle: { fontSize: 15, fontWeight: "700", color: "#00C49A", marginBottom: 8 },
   reasonText: { fontSize: 14, color: "#FFFFFF", marginBottom: 4 },
 });
+
