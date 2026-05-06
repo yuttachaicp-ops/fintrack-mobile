@@ -21,7 +21,7 @@ const chartConfig = {
 };
 
 export default function CashShiftScreen() {
-  const [tab, setTab] = useState("shift");
+  const [tab, setTab] = useState("dashboard");
   const [session, setSession] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -86,19 +86,30 @@ export default function CashShiftScreen() {
        }}]);
   };
 
+  const deleteHistory = async (id) => {
+    Alert.alert("ลบประวัติ", "ต้องการลบรายการนี้?", [
+      { text: "ยกเลิก", style: "cancel" },
+      { text: "ลบ", style: "destructive", onPress: async () => {
+        try {
+          await fetch(`${API_URL}/api/cash-shift/${id}`, { method: "DELETE" });
+          loadHistory();
+        } catch { Alert.alert("เกิดข้อผิดพลาด"); }
+      }}]);
+  };
+
   const elapsed = session ? Math.round((Date.now() - new Date(session.startedAt)) / 60000) : 0;
   const previewTotal = endCash && appIncome && session ? (parseFloat(endCash) - session.startCash) + parseFloat(appIncome) : 0;
   const previewProfit = previewTotal - parseFloat(fuelCost || 0);
 
-  // Chart data from history
   const last7 = [...history].reverse().slice(-7);
-  const chartLabels = last7.map(h => { const d = new Date(h.startedAt); return `${d.getDate()}/${d.getMonth()+1}`; });
-  const profitData = last7.map(h => Math.max(0, h.netProfit || 0));
-  const incomeData = last7.map(h => h.totalIncome || 0);
+  const chartLabels = last7.length > 0 ? last7.map(h => { const d = new Date(h.startedAt); return `${d.getDate()}/${d.getMonth()+1}`; }) : [""];
+  const profitData = last7.length > 0 ? last7.map(h => Math.max(0, h.netProfit || 0)) : [0];
+  const incomeData = last7.length > 0 ? last7.map(h => h.totalIncome || 0) : [0];
 
   const totalProfit = history.reduce((s, h) => s + (h.netProfit || 0), 0);
   const totalIncome = history.reduce((s, h) => s + (h.totalIncome || 0), 0);
   const avgProfit = history.length > 0 ? totalProfit / history.length : 0;
+  const bestProfit = history.length > 0 ? Math.max(...history.map(h => h.netProfit || 0)) : 0;
 
   if (loading) return (
     <View style={s.center}><ActivityIndicator size="large" color="#00C49A" /></View>
@@ -112,20 +123,111 @@ export default function CashShiftScreen() {
         <Text style={s.headerSub}>บันทึกรายได้ต่อกะ</Text>
       </LinearGradient>
 
-      {/* Tabs */}
       <View style={s.tabRow}>
-        {["shift","history","chart"].map(t => (
+        {[["dashboard","📊 ภาพรวม"],["shift","💰 กะงาน"],["history","📋 ประวัติ"]].map(([t,lbl]) => (
           <TouchableOpacity key={t} style={[s.tabBtn, tab===t && s.tabActive]} onPress={() => setTab(t)}>
-            <Text style={[s.tabText, tab===t && s.tabActiveText]}>
-              {t==="shift" ? "💰 กะงาน" : t==="history" ? "📋 ประวัติ" : "📊 กราฟ"}
-            </Text>
+            <Text style={[s.tabText, tab===t && s.tabActiveText]}>{lbl}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
 
-        {/* ── TAB: SHIFT ── */}
+        {/* ── DASHBOARD TAB ── */}
+        {tab === "dashboard" && (
+          <View style={s.section}>
+            {/* Status card */}
+            {session ? (
+              <LinearGradient colors={["#00C49A44","#1A1F2E"]} style={[s.card,{borderColor:"#00C49A44"}]}>
+                <Text style={[s.cardTitle,{color:"#00C49A"}]}>⚡ กำลังทำงานอยู่</Text>
+                <View style={s.statsRow}>
+                  <View style={s.statItem}>
+                    <Text style={s.statVal}>{session.startCash.toLocaleString()}</Text>
+                    <Text style={s.statLab}>เงินเริ่มต้น ฿</Text>
+                  </View>
+                  <View style={s.statItem}>
+                    <Text style={[s.statVal,{color:"#FFA500"}]}>
+                      {Math.floor(elapsed/60)>0?`${Math.floor(elapsed/60)}ชม.${elapsed%60}น.`:`${elapsed}น.`}
+                    </Text>
+                    <Text style={s.statLab}>เวลาทำงาน</Text>
+                  </View>
+                </View>
+                <TouchableOpacity onPress={() => setTab("shift")} style={s.goBtn}>
+                  <Text style={s.goBtnText}>🛑 ไปจบงาน →</Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            ) : (
+              <TouchableOpacity onPress={() => setTab("shift")}>
+                <LinearGradient colors={["#00C49A","#00A882"]} style={[s.card,{alignItems:"center"}]}>
+                  <Text style={{fontSize:32}}>🚀</Text>
+                  <Text style={[s.cardTitle,{color:"#fff",marginTop:8}]}>เริ่มงานเลย</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+
+            {/* Summary stats */}
+            <View style={s.summaryRow}>
+              <View style={s.sumBox}>
+                <Text style={[s.sumVal,{color:"#00C49A"}]}>{totalIncome.toLocaleString()}</Text>
+                <Text style={s.sumLab}>รายรับรวม ฿</Text>
+              </View>
+              <View style={s.sumBox}>
+                <Text style={[s.sumVal,{color: totalProfit>=0?"#00C49A":"#FF3B4E"}]}>{totalProfit.toLocaleString()}</Text>
+                <Text style={s.sumLab}>กำไรรวม ฿</Text>
+              </View>
+            </View>
+            <View style={s.summaryRow}>
+              <View style={s.sumBox}>
+                <Text style={[s.sumVal,{color:"#FFA500"}]}>{avgProfit.toFixed(0)}</Text>
+                <Text style={s.sumLab}>เฉลี่ย/กะ ฿</Text>
+              </View>
+              <View style={s.sumBox}>
+                <Text style={[s.sumVal,{color:"#00C49A"}]}>{bestProfit.toLocaleString()}</Text>
+                <Text style={s.sumLab}>สูงสุด ฿</Text>
+              </View>
+              <View style={s.sumBox}>
+                <Text style={s.sumVal}>{history.length}</Text>
+                <Text style={s.sumLab}>กะทั้งหมด</Text>
+              </View>
+            </View>
+
+            {/* Charts */}
+            {last7.length >= 2 ? (
+              <>
+                <View style={s.chartCard}>
+                  <Text style={s.chartTitle}>🔥 กำไรสุทธิรายกะ (7 กะล่าสุด)</Text>
+                  <BarChart
+                    data={{ labels: chartLabels, datasets: [{ data: profitData }] }}
+                    width={W-48} height={180}
+                    chartConfig={chartConfig} style={s.chart} fromZero showValuesOnTopOfBars
+                  />
+                </View>
+                <View style={s.chartCard}>
+                  <Text style={s.chartTitle}>📈 รายรับ vs กำไร</Text>
+                  <LineChart
+                    data={{
+                      labels: chartLabels,
+                      datasets: [
+                        { data: incomeData, color: () => "#00C49A", strokeWidth: 2 },
+                        { data: profitData, color: () => "#FFA500", strokeWidth: 2 },
+                      ],
+                      legend: ["รายรับ","กำไรสุทธิ"],
+                    }}
+                    width={W-48} height={200}
+                    chartConfig={chartConfig} style={s.chart} bezier fromZero
+                  />
+                </View>
+              </>
+            ) : (
+              <View style={s.emptyBox}>
+                <Text style={s.emptyText}>ต้องการข้อมูลอย่างน้อย 2 กะ</Text>
+                <Text style={s.emptySub}>เพื่อแสดงกราฟ</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* ── SHIFT TAB ── */}
         {tab === "shift" && (
           <View style={s.section}>
             {!session ? (
@@ -144,7 +246,7 @@ export default function CashShiftScreen() {
                 </View>
                 <Text style={s.label}>หมายเหตุ</Text>
                 <View style={s.inputBox}>
-                  <TextInput style={[s.input, {fontSize:16}]} value={note} onChangeText={setNote} placeholder="วันนี้ฝนตก..." placeholderTextColor="#3A4558" />
+                  <TextInput style={[s.input,{fontSize:16}]} value={note} onChangeText={setNote} placeholder="วันนี้ฝนตก..." placeholderTextColor="#3A4558" />
                 </View>
                 <TouchableOpacity onPress={startShift}>
                   <LinearGradient colors={["#00C49A","#00A882"]} style={s.btn}>
@@ -154,8 +256,8 @@ export default function CashShiftScreen() {
               </View>
             ) : (
               <>
-                <LinearGradient colors={["#00C49A33","#1A1F2E"]} style={s.activeCard}>
-                  <Text style={s.activeTitle}>⚡ กำลังทำงานอยู่</Text>
+                <LinearGradient colors={["#00C49A33","#1A1F2E"]} style={[s.card,{borderColor:"#00C49A44"}]}>
+                  <Text style={[s.cardTitle,{color:"#00C49A"}]}>⚡ กำลังทำงานอยู่</Text>
                   <View style={s.statsRow}>
                     <View style={s.statItem}>
                       <Text style={s.statVal}>{session.startCash.toLocaleString()}</Text>
@@ -163,7 +265,7 @@ export default function CashShiftScreen() {
                     </View>
                     <View style={s.statItem}>
                       <Text style={[s.statVal,{color:"#FFA500"}]}>
-                        {Math.floor(elapsed/60)>0 ? `${Math.floor(elapsed/60)}ชม.${elapsed%60}น.` : `${elapsed} นาที`}
+                        {Math.floor(elapsed/60)>0?`${Math.floor(elapsed/60)}ชม.${elapsed%60}น.`:`${elapsed} นาที`}
                       </Text>
                       <Text style={s.statLab}>เวลาทำงาน</Text>
                     </View>
@@ -181,19 +283,18 @@ export default function CashShiftScreen() {
                   <Text style={s.cardTitle}>🛑 จบงาน</Text>
                   <View style={s.divider} />
                   {[
-                    ["เงินสดหลังจบ (฿)", endCash, setEndCash, "฿", ""],
-                    ["เงินในแอพ (฿)", appIncome, setAppIncome, "฿", ""],
-                    ["ค่าน้ำมัน (฿)", fuelCost, setFuelCost, "฿", ""],
-                  ].map(([lbl, val, set, pre]) => (
+                    ["เงินสดหลังจบ (฿)", endCash, setEndCash],
+                    ["เงินในแอพ (฿)", appIncome, setAppIncome],
+                    ["ค่าน้ำมัน (฿)", fuelCost, setFuelCost],
+                  ].map(([lbl,val,set]) => (
                     <View key={lbl}>
                       <Text style={s.label}>{lbl}</Text>
                       <View style={s.inputBox}>
-                        <Text style={s.prefix}>{pre}</Text>
+                        <Text style={s.prefix}>฿</Text>
                         <TextInput style={s.input} value={val} onChangeText={set} keyboardType="numeric" placeholder="0" placeholderTextColor="#3A4558" />
                       </View>
                     </View>
                   ))}
-
                   {endCash && appIncome && fuelCost && (
                     <View style={s.preview}>
                       <View style={s.previewRow}>
@@ -202,11 +303,10 @@ export default function CashShiftScreen() {
                       </View>
                       <View style={s.previewRow}>
                         <Text style={s.previewLab}>🔥 กำไรสุทธิ</Text>
-                        <Text style={[s.previewVal,{color: previewProfit>=0?"#00C49A":"#FF3B4E"}]}>{previewProfit.toLocaleString()} ฿</Text>
+                        <Text style={[s.previewVal,{color:previewProfit>=0?"#00C49A":"#FF3B4E"}]}>{previewProfit.toLocaleString()} ฿</Text>
                       </View>
                     </View>
                   )}
-
                   <TouchableOpacity onPress={endShift}>
                     <LinearGradient colors={["#FF3B4E","#C0392B"]} style={s.btn}>
                       <Text style={s.btnText}>🛑 จบงาน</Text>
@@ -218,10 +318,9 @@ export default function CashShiftScreen() {
           </View>
         )}
 
-        {/* ── TAB: HISTORY ── */}
+        {/* ── HISTORY TAB ── */}
         {tab === "history" && (
           <View style={s.section}>
-            {/* Summary strip */}
             <View style={s.summaryRow}>
               <View style={s.sumBox}>
                 <Text style={s.sumVal}>{history.length}</Text>
@@ -232,14 +331,14 @@ export default function CashShiftScreen() {
                 <Text style={s.sumLab}>รายรับรวม ฿</Text>
               </View>
               <View style={s.sumBox}>
-                <Text style={[s.sumVal,{color: totalProfit>=0?"#00C49A":"#FF3B4E"}]}>{totalProfit.toLocaleString()}</Text>
+                <Text style={[s.sumVal,{color:totalProfit>=0?"#00C49A":"#FF3B4E"}]}>{totalProfit.toLocaleString()}</Text>
                 <Text style={s.sumLab}>กำไรรวม ฿</Text>
               </View>
             </View>
 
             {history.length === 0 ? (
               <View style={s.emptyBox}>
-                <Text style={s.emptyText}>ยังไม่มีประวัติการทำงาน</Text>
+                <Text style={s.emptyText}>ยังไม่มีประวัติ</Text>
                 <Text style={s.emptySub}>เริ่มงานแล้วจบงานเพื่อดูประวัติ</Text>
               </View>
             ) : history.map((h) => {
@@ -251,17 +350,17 @@ export default function CashShiftScreen() {
               return (
                 <View key={h.id} style={s.histCard}>
                   <View style={s.histHead}>
-                    <Text style={s.histDate}>📅 {date}</Text>
-                    <Text style={s.histTime}>{startTime} — {endTime} ({Math.floor(el/60)>0?`${Math.floor(el/60)}ชม.`:""}{el%60}น.)</Text>
+                    <View>
+                      <Text style={s.histDate}>📅 {date}</Text>
+                      <Text style={s.histTime}>{startTime} — {endTime} ({Math.floor(el/60)>0?`${Math.floor(el/60)}ชม.`:""}{el%60}น.)</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => deleteHistory(h.id)} style={s.delBtn}>
+                      <Text style={s.delBtnText}>🗑️</Text>
+                    </TouchableOpacity>
                   </View>
                   {h.note ? <Text style={s.histNote}>📝 {h.note}</Text> : null}
                   <View style={s.histStats}>
-                    {[
-                      ["เริ่มต้น", h.startCash, "#8A9BB0"],
-                      ["หลังจบ", h.endCash, "#FFFFFF"],
-                      ["แอพ", h.appIncome, "#00C49A"],
-                      ["น้ำมัน", h.fuelCost, "#FF4757"],
-                    ].map(([lbl,val,col]) => (
+                    {[["เริ่มต้น",h.startCash,"#8A9BB0"],["หลังจบ",h.endCash,"#FFFFFF"],["แอพ",h.appIncome,"#00C49A"],["น้ำมัน",h.fuelCost,"#FF4757"]].map(([lbl,val,col]) => (
                       <View key={lbl} style={s.hStat}>
                         <Text style={[s.hStatVal,{color:col}]}>{(val||0).toLocaleString()}</Text>
                         <Text style={s.hStatLab}>{lbl} ฿</Text>
@@ -284,63 +383,6 @@ export default function CashShiftScreen() {
           </View>
         )}
 
-        {/* ── TAB: CHART ── */}
-        {tab === "chart" && (
-          <View style={s.section}>
-            {last7.length < 2 ? (
-              <View style={s.emptyBox}>
-                <Text style={s.emptyText}>ต้องการข้อมูลอย่างน้อย 2 กะ</Text>
-                <Text style={s.emptySub}>เพื่อแสดงกราฟ</Text>
-              </View>
-            ) : (
-              <>
-                {/* Stat cards */}
-                <View style={s.summaryRow}>
-                  <View style={s.sumBox}>
-                    <Text style={[s.sumVal,{color:"#00C49A"}]}>{avgProfit.toFixed(0)}</Text>
-                    <Text style={s.sumLab}>เฉลี่ย/กะ ฿</Text>
-                  </View>
-                  <View style={s.sumBox}>
-                    <Text style={[s.sumVal,{color:"#FFA500"}]}>{Math.max(...profitData).toLocaleString()}</Text>
-                    <Text style={s.sumLab}>สูงสุด ฿</Text>
-                  </View>
-                  <View style={s.sumBox}>
-                    <Text style={[s.sumVal,{color:"#FF4757"}]}>{Math.min(...profitData).toLocaleString()}</Text>
-                    <Text style={s.sumLab}>ต่ำสุด ฿</Text>
-                  </View>
-                </View>
-
-                {/* Bar Chart - กำไรสุทธิ */}
-                <View style={s.chartCard}>
-                  <Text style={s.chartTitle}>🔥 กำไรสุทธิรายกะ</Text>
-                  <BarChart
-                    data={{ labels: chartLabels, datasets: [{ data: profitData }] }}
-                    width={W - 48} height={200}
-                    chartConfig={chartConfig} style={s.chart} fromZero showValuesOnTopOfBars
-                  />
-                </View>
-
-                {/* Line Chart - รายรับ vs กำไร */}
-                <View style={s.chartCard}>
-                  <Text style={s.chartTitle}>📈 รายรับ vs กำไร</Text>
-                  <LineChart
-                    data={{
-                      labels: chartLabels,
-                      datasets: [
-                        { data: incomeData, color: () => "#00C49A", strokeWidth: 2 },
-                        { data: profitData, color: () => "#FFA500", strokeWidth: 2 },
-                      ],
-                      legend: ["รายรับ", "กำไรสุทธิ"],
-                    }}
-                    width={W - 48} height={220}
-                    chartConfig={chartConfig} style={s.chart} bezier fromZero
-                  />
-                </View>
-              </>
-            )}
-          </View>
-        )}
-
         <View style={{ height: 100 }} />
       </ScrollView>
     </View>
@@ -356,7 +398,7 @@ const s = StyleSheet.create({
   tabRow: { flexDirection: "row", paddingHorizontal: 24, paddingVertical: 12, gap: 8 },
   tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: "center", backgroundColor: "#1A1F2E", borderWidth: 1, borderColor: "#252D3D" },
   tabActive: { backgroundColor: "#00C49A", borderColor: "#00C49A" },
-  tabText: { fontSize: 13, fontWeight: "700", color: "#8A9BB0" },
+  tabText: { fontSize: 12, fontWeight: "700", color: "#8A9BB0" },
   tabActiveText: { color: "#0D1117" },
   section: { paddingHorizontal: 24 },
   card: { backgroundColor: "#1A1F2E", borderRadius: 20, padding: 20, borderWidth: 1, borderColor: "#252D3D", marginBottom: 16 },
@@ -369,9 +411,9 @@ const s = StyleSheet.create({
   suffix: { fontSize: 16, color: "#8A9BB0", marginLeft: 4 },
   btn: { borderRadius: 16, paddingVertical: 18, alignItems: "center", marginTop: 16 },
   btnText: { fontSize: 18, fontWeight: "800", color: "#fff" },
-  activeCard: { borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: "#00C49A44" },
-  activeTitle: { fontSize: 18, fontWeight: "800", color: "#00C49A", marginBottom: 12 },
-  statsRow: { flexDirection: "row", gap: 10 },
+  goBtn: { marginTop: 12, backgroundColor: "#00C49A22", borderRadius: 10, padding: 10, alignItems: "center" },
+  goBtnText: { color: "#00C49A", fontWeight: "700" },
+  statsRow: { flexDirection: "row", gap: 10, marginTop: 12 },
   statItem: { flex: 1, alignItems: "center", backgroundColor: "#0D1117", borderRadius: 12, padding: 12 },
   statVal: { fontSize: 16, fontWeight: "800", color: "#fff" },
   statLab: { fontSize: 10, color: "#8A9BB0", marginTop: 4, textAlign: "center" },
@@ -380,15 +422,18 @@ const s = StyleSheet.create({
   previewRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
   previewLab: { fontSize: 15, color: "#8A9BB0", fontWeight: "600" },
   previewVal: { fontSize: 15, fontWeight: "800", color: "#00C49A" },
-  summaryRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+  summaryRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
   sumBox: { flex: 1, backgroundColor: "#1A1F2E", borderRadius: 14, padding: 14, alignItems: "center", borderWidth: 1, borderColor: "#252D3D" },
-  sumVal: { fontSize: 18, fontWeight: "800", color: "#FFA500" },
+  sumVal: { fontSize: 16, fontWeight: "800", color: "#FFA500" },
   sumLab: { fontSize: 10, color: "#8A9BB0", marginTop: 4, textAlign: "center" },
-  emptyBox: { alignItems: "center", paddingVertical: 60 },
+  emptyBox: { alignItems: "center", paddingVertical: 40 },
   emptyText: { fontSize: 16, color: "#8A9BB0", fontWeight: "600" },
   emptySub: { fontSize: 13, color: "#3A4558", marginTop: 8 },
+  chartCard: { backgroundColor: "#1A1F2E", borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: "#252D3D", overflow: "hidden" },
+  chartTitle: { fontSize: 15, fontWeight: "700", color: "#fff", marginBottom: 12 },
+  chart: { borderRadius: 12, marginLeft: -8 },
   histCard: { backgroundColor: "#1A1F2E", borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "#252D3D" },
-  histHead: { marginBottom: 4 },
+  histHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 },
   histDate: { fontSize: 15, fontWeight: "800", color: "#fff" },
   histTime: { fontSize: 12, color: "#8A9BB0", marginTop: 2 },
   histNote: { fontSize: 12, color: "#8A9BB0", marginTop: 4, marginBottom: 8 },
@@ -400,7 +445,8 @@ const s = StyleSheet.create({
   profBox: { flex: 1, backgroundColor: "#00C49A22", borderRadius: 10, padding: 10, alignItems: "center" },
   profLab: { fontSize: 11, color: "#8A9BB0" },
   profVal: { fontSize: 15, fontWeight: "800", color: "#00C49A", marginTop: 2 },
-  chartCard: { backgroundColor: "#1A1F2E", borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: "#252D3D", overflow: "hidden" },
-  chartTitle: { fontSize: 16, fontWeight: "700", color: "#fff", marginBottom: 12 },
-  chart: { borderRadius: 12, marginLeft: -8 },
+  delBtn: { padding: 8, backgroundColor: "#FF3B4E22", borderRadius: 8 },
+  delBtnText: { fontSize: 16 },
+  activeCard: { borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: "#00C49A44" },
+  activeTitle: { fontSize: 18, fontWeight: "800", color: "#00C49A", marginBottom: 12 },
 });

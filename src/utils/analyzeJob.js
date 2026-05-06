@@ -11,8 +11,22 @@
   const profitPerHour = estimatedMinutes > 0 ? Math.round((netProfit / estimatedMinutes) * 60) : 0;
   const remainingTarget = Math.max(0, dailyTarget - currentDailyEarned);
 
-  const MAIN_ZONES = ["central rama 2","rama 2","the bright","lotus rama 2","ekachai","bangbon","เซ็นทรัล พระราม 2","พระราม 2","เอกชัย","บางบอน","โลตัส พระราม 2","อนามัยงามเจริญ","ท่าข้าม","บางขุนเทียน"];
-  const RISK_ZONES = ["mahachai","samut sakhon","มหาชัย","สมุทรสาคร","ซอยลึก","นิคม"];
+  const MAIN_ZONES = [
+    // Zone A - โซนทอง
+    "the bright","the bright rama 2","ท่าข้าม","วัดหัวกระบือ","อนามัยงามเจริญ",
+    // Zone B - เอกชัย/บางบอนต้นๆ
+    "เอกชัย","บางบอน","กาญจนาภิเษก",
+    // Zone C - สะแกงาม/เทียนทะเลต้นๆ
+    "สะแกงาม","เทียนทะเล",
+    // พระราม 2
+    "พระราม 2","rama 2","central rama 2","เซ็นทรัล พระราม 2","โลตัส พระราม 2",
+    // บางมด/พุทธบูชา/สุขสวัสดิ์
+    "บางมด","พุทธบูชา","สุขสวัสดิ์",
+  ];
+  const RISK_ZONES = [
+    "มหาชัย","หนองแขม","เพชรเกษม","บางบอนปลาย","โรงงาน","ชายทะเล",
+    "samut sakhon","mahachai","สมุทรสาคร",
+  ];
   const endZoneLower = (endZone || "").toLowerCase();
   const isMainZone = MAIN_ZONES.some(z => endZoneLower.includes(z.toLowerCase()));
   const isRiskZone = RISK_ZONES.some(z => endZoneLower.includes(z.toLowerCase()));
@@ -95,4 +109,5 @@
     jobsNeeded,
   };
 }
+
 
