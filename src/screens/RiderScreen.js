@@ -22,12 +22,14 @@ export default function RiderScreen() {
   const [stops, setStops] = useState("1");
   const [endZone, setEndZone] = useState("");
   const [jobType, setJobType] = useState("single");
+  const [workType, setWorkType] = useState("delivery");
   const [traffic, setTraffic] = useState("medium");
   const [result, setResult] = useState(null);
 
   const check = () => {
     if (!price || !km) return;
     const r = analyzeJob({
+      workType,
       price: parseFloat(price),
       distanceKm: parseFloat(km),
       stops: parseInt(stops) || 1,
@@ -132,6 +134,21 @@ export default function RiderScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+        </View>
+
+        {/* Work Type */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>ประเภทงาน</Text>
+          <View style={s.toggle}>
+            <TouchableOpacity style={[s.toggleBtn, workType==="delivery" && s.toggleActive]}
+              onPress={() => setWorkType("delivery")}>
+              <Text style={[s.toggleText, workType==="delivery" && s.toggleActiveText]}>📦 ส่งของ</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.toggleBtn, workType==="food" && { backgroundColor: "#FF8C00" }]}
+              onPress={() => setWorkType("food")}>
+              <Text style={[s.toggleText, workType==="food" && { color: "#fff" }]}>🍜 อาหาร</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Job Type */}
@@ -278,4 +295,5 @@ const s = StyleSheet.create({
   reasonTitle: { fontSize: 15, fontWeight: "700", color: "#00C49A", marginBottom: 8 },
   reasonText: { fontSize: 14, color: "#FFFFFF", marginBottom: 4 },
 });
+
 
