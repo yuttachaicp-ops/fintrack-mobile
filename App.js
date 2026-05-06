@@ -10,6 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BarChart, LineChart } from "react-native-chart-kit";
 import { Ionicons } from "@expo/vector-icons";
 import RiderScreen from "./src/screens/RiderScreen";
+import CashShiftScreen from "./src/screens/CashShiftScreen";
 
 const API_URL = "https://sugartanny.duckdns.org";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -426,6 +427,7 @@ export default function App() {
               เพิ่มรายการ: focused ? "add-circle" : "add-circle-outline",
               ประวัติ: focused ? "list" : "list-outline",
               Rider: focused ? "bicycle" : "bicycle-outline",
+              กะงาน: focused ? "time" : "time-outline",
             };
             return <Ionicons name={icons[route.name]} size={26} color={color} />;
           },
@@ -435,9 +437,11 @@ export default function App() {
         <Tab.Screen name="เพิ่มรายการ" component={AddScreen} />
         <Tab.Screen name="ประวัติ" component={HistoryScreen} />
         <Tab.Screen name="Rider" component={RiderScreen} />
+        <Tab.Screen name="กะงาน" component={CashShiftScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );
 }
+
 
 
