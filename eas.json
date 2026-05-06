@@ -1,4 +1,4 @@
-{
+﻿{
   "cli": {
     "version": ">= 18.9.1",
     "appVersionSource": "remote"
@@ -7,6 +7,12 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal"
+    },
+    "rider": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
     },
     "preview": {
       "distribution": "internal"
@@ -19,3 +25,4 @@
     "production": {}
   }
 }
+
