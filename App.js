@@ -11,6 +11,7 @@ import { BarChart, LineChart } from "react-native-chart-kit";
 import { Ionicons } from "@expo/vector-icons";
 import RiderScreen from "./src/screens/RiderScreen";
 import CashShiftScreen from "./src/screens/CashShiftScreen";
+import MonthlyBillScreen from "./src/screens/MonthlyBillScreen";
 
 const API_URL = "https://sugartanny.duckdns.org";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -428,6 +429,7 @@ export default function App() {
               ประวัติ: focused ? "list" : "list-outline",
               "เช็คงาน": focused ? "bicycle" : "bicycle-outline",
               "เงินก่อนเริ่มงาน": focused ? "cash" : "cash-outline",
+              "บิลรายเดือน": focused ? "card" : "card-outline",
             };
             return <Ionicons name={icons[route.name]} size={26} color={color} />;
           },
@@ -438,10 +440,12 @@ export default function App() {
         <Tab.Screen name="ประวัติ" component={HistoryScreen} />
         <Tab.Screen name="เช็คงาน" component={RiderScreen} />
         <Tab.Screen name="เงินก่อนเริ่มงาน" component={CashShiftScreen} />
+        <Tab.Screen name="บิลรายเดือน" component={MonthlyBillScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );
 }
+
 
 
 
