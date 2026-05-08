@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  TextInput, StatusBar, Alert, ActivityIndicator, Dimensions,
+  TextInput, StatusBar, Alert, ActivityIndicator, Dimensions, Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { LineChart, BarChart } from "react-native-chart-kit";
@@ -26,11 +26,16 @@ export default function CashShiftScreen() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [startCash, setStartCash] = useState("");
+  const [startBank, setStartBank] = useState("");
   const [fuelLevel, setFuelLevel] = useState("");
   const [note, setNote] = useState("");
   const [endCash, setEndCash] = useState("");
+  const [endBank, setEndBank] = useState("");
   const [appIncome, setAppIncome] = useState("");
   const [fuelCost, setFuelCost] = useState("");
+  const [editModal, setEditModal] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [editData, setEditData] = useState({});
 
   useEffect(() => { loadAll(); }, []);
 
@@ -59,9 +64,9 @@ export default function CashShiftScreen() {
     try {
       const res = await fetch(`${API_URL}/api/cash-shift/start`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lineUserId: LINE_USER_ID, startCash: parseFloat(startCash), fuelLevel, note }),
+        body: JSON.stringify({ lineUserId: LINE_USER_ID, startCash: parseFloat(startCash), startBankAmount: startBank ? parseFloat(startBank) : null, fuelLevel, note }),
       });
-      if (res.ok) { Alert.alert("✅ เริ่มงานแล้ว!"); setStartCash(""); setFuelLevel(""); setNote(""); loadAll(); }
+      if (res.ok) { Alert.alert("✅ เริ่มงานแล้ว!"); setStartCash(""); setStartBank(""); setFuelLevel(""); setNote(""); loadAll(); }
       else { const d = await res.json(); Alert.alert("❌ " + d.error); }
     } catch { Alert.alert("เกิดข้อผิดพลาด"); }
   };
@@ -78,9 +83,9 @@ export default function CashShiftScreen() {
          try {
            await fetch(`${API_URL}/api/cash-shift/end`, {
              method: "POST", headers: { "Content-Type": "application/json" },
-             body: JSON.stringify({ lineUserId: LINE_USER_ID, endCash: ec, appIncome: ai, fuelCost: fc }),
+             body: JSON.stringify({ lineUserId: LINE_USER_ID, endCash: ec, appIncome: ai, fuelCost: fc, endBankAmount: endBank ? parseFloat(endBank) : null }),
            });
-           setEndCash(""); setAppIncome(""); setFuelCost("");
+           setEndCash(""); setEndBank(""); setAppIncome(""); setFuelCost("");
            Alert.alert("✅ จบงานแล้ว!"); loadAll();
          } catch { Alert.alert("เกิดข้อผิดพลาด"); }
        }}]);
@@ -95,6 +100,40 @@ export default function CashShiftScreen() {
           loadHistory();
         } catch { Alert.alert("เกิดข้อผิดพลาด"); }
       }}]);
+  };
+
+  const openEdit = (item) => {
+    setEditItem(item);
+    setEditData({
+      startCash: String(item.startCash || ""),
+      endCash: String(item.endCash || ""),
+      appIncome: String(item.appIncome || ""),
+      fuelCost: String(item.fuelCost || ""),
+      startBankAmount: String(item.startBankAmount || ""),
+      endBankAmount: String(item.endBankAmount || ""),
+      note: item.note || "",
+      fuelLevel: item.fuelLevel || "",
+    });
+    setEditModal(true);
+  };
+
+  const saveEdit = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/cash-shift/${editItem.id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startCash: parseFloat(editData.startCash),
+          endCash: parseFloat(editData.endCash),
+          appIncome: parseFloat(editData.appIncome),
+          fuelCost: parseFloat(editData.fuelCost),
+          startBankAmount: editData.startBankAmount ? parseFloat(editData.startBankAmount) : null,
+          endBankAmount: editData.endBankAmount ? parseFloat(editData.endBankAmount) : null,
+          note: editData.note,
+          fuelLevel: editData.fuelLevel,
+        }),
+      });
+      if (res.ok) { Alert.alert("✅ แก้ไขสำเร็จ"); setEditModal(false); loadHistory(); }
+    } catch { Alert.alert("เกิดข้อผิดพลาด"); }
   };
 
   const elapsed = session ? Math.round((Date.now() - new Date(session.startedAt)) / 60000) : 0;
@@ -119,7 +158,7 @@ export default function CashShiftScreen() {
     <View style={s.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0D1117" />
       <LinearGradient colors={["#0D1117", "#1A1F2E"]} style={s.header}>
-        <Text style={s.headerTitle}>💰 Cash Shift</Text>
+        <Text style={s.headerTitle}>💰 เงินก่อนเริ่มงาน</Text>
         <Text style={s.headerSub}>บันทึกรายได้ต่อกะ</Text>
       </LinearGradient>
 
@@ -133,18 +172,23 @@ export default function CashShiftScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
 
-        {/* ── DASHBOARD TAB ── */}
+        {/* ── DASHBOARD ── */}
         {tab === "dashboard" && (
           <View style={s.section}>
-            {/* Status card */}
             {session ? (
               <LinearGradient colors={["#00C49A44","#1A1F2E"]} style={[s.card,{borderColor:"#00C49A44"}]}>
                 <Text style={[s.cardTitle,{color:"#00C49A"}]}>⚡ กำลังทำงานอยู่</Text>
                 <View style={s.statsRow}>
                   <View style={s.statItem}>
                     <Text style={s.statVal}>{session.startCash.toLocaleString()}</Text>
-                    <Text style={s.statLab}>เงินเริ่มต้น ฿</Text>
+                    <Text style={s.statLab}>เงินสดเริ่ม ฿</Text>
                   </View>
+                  {session.startBankAmount && (
+                    <View style={s.statItem}>
+                      <Text style={[s.statVal,{color:"#FFA500"}]}>{session.startBankAmount.toLocaleString()}</Text>
+                      <Text style={s.statLab}>ธนาคารเริ่ม ฿</Text>
+                    </View>
+                  )}
                   <View style={s.statItem}>
                     <Text style={[s.statVal,{color:"#FFA500"}]}>
                       {Math.floor(elapsed/60)>0?`${Math.floor(elapsed/60)}ชม.${elapsed%60}น.`:`${elapsed}น.`}
@@ -165,14 +209,13 @@ export default function CashShiftScreen() {
               </TouchableOpacity>
             )}
 
-            {/* Summary stats */}
             <View style={s.summaryRow}>
               <View style={s.sumBox}>
                 <Text style={[s.sumVal,{color:"#00C49A"}]}>{totalIncome.toLocaleString()}</Text>
                 <Text style={s.sumLab}>รายรับรวม ฿</Text>
               </View>
               <View style={s.sumBox}>
-                <Text style={[s.sumVal,{color: totalProfit>=0?"#00C49A":"#FF3B4E"}]}>{totalProfit.toLocaleString()}</Text>
+                <Text style={[s.sumVal,{color:totalProfit>=0?"#00C49A":"#FF3B4E"}]}>{totalProfit.toLocaleString()}</Text>
                 <Text style={s.sumLab}>กำไรรวม ฿</Text>
               </View>
             </View>
@@ -191,31 +234,23 @@ export default function CashShiftScreen() {
               </View>
             </View>
 
-            {/* Charts */}
             {last7.length >= 2 ? (
               <>
                 <View style={s.chartCard}>
                   <Text style={s.chartTitle}>🔥 กำไรสุทธิรายกะ (7 กะล่าสุด)</Text>
-                  <BarChart
-                    data={{ labels: chartLabels, datasets: [{ data: profitData }] }}
-                    width={W-48} height={180}
-                    chartConfig={chartConfig} style={s.chart} fromZero showValuesOnTopOfBars
-                  />
+                  <BarChart data={{ labels: chartLabels, datasets: [{ data: profitData }] }}
+                    width={W-48} height={180} chartConfig={chartConfig} style={s.chart} fromZero showValuesOnTopOfBars />
                 </View>
                 <View style={s.chartCard}>
                   <Text style={s.chartTitle}>📈 รายรับ vs กำไร</Text>
-                  <LineChart
-                    data={{
-                      labels: chartLabels,
-                      datasets: [
-                        { data: incomeData, color: () => "#00C49A", strokeWidth: 2 },
-                        { data: profitData, color: () => "#FFA500", strokeWidth: 2 },
-                      ],
-                      legend: ["รายรับ","กำไรสุทธิ"],
-                    }}
-                    width={W-48} height={200}
-                    chartConfig={chartConfig} style={s.chart} bezier fromZero
-                  />
+                  <LineChart data={{
+                    labels: chartLabels,
+                    datasets: [
+                      { data: incomeData, color: () => "#00C49A", strokeWidth: 2 },
+                      { data: profitData, color: () => "#FFA500", strokeWidth: 2 },
+                    ],
+                    legend: ["รายรับ","กำไรสุทธิ"],
+                  }} width={W-48} height={200} chartConfig={chartConfig} style={s.chart} bezier fromZero />
                 </View>
               </>
             ) : (
@@ -227,24 +262,26 @@ export default function CashShiftScreen() {
           </View>
         )}
 
-        {/* ── SHIFT TAB ── */}
+        {/* ── SHIFT ── */}
         {tab === "shift" && (
           <View style={s.section}>
             {!session ? (
               <View style={s.card}>
                 <Text style={s.cardTitle}>🚀 เริ่มงาน</Text>
                 <View style={s.divider} />
-                <Text style={s.label}>เงินสดเริ่มต้น (฿)</Text>
-                <View style={s.inputBox}>
-                  <Text style={s.prefix}>฿</Text>
-                  <TextInput style={s.input} value={startCash} onChangeText={setStartCash} keyboardType="numeric" placeholder="0" placeholderTextColor="#3A4558" />
-                </View>
-                <Text style={s.label}>น้ำมันคงเหลือ (%)</Text>
-                <View style={s.inputBox}>
-                  <TextInput style={s.input} value={fuelLevel} onChangeText={setFuelLevel} keyboardType="numeric" placeholder="80" placeholderTextColor="#3A4558" />
-                  <Text style={s.suffix}>%</Text>
-                </View>
-                <Text style={s.label}>หมายเหตุ</Text>
+                {[
+                  ["💵 เงินสดเริ่มต้น (฿)", startCash, setStartCash, "0"],
+                  ["🏦 เงินในบัญชีธนาคาร (฿)", startBank, setStartBank, "0"],
+                  ["⛽ น้ำมันคงเหลือ (%)", fuelLevel, setFuelLevel, "80"],
+                ].map(([lbl,val,set,ph]) => (
+                  <View key={lbl}>
+                    <Text style={s.label}>{lbl}</Text>
+                    <View style={s.inputBox}>
+                      <TextInput style={s.input} value={val} onChangeText={set} keyboardType="numeric" placeholder={ph} placeholderTextColor="#3A4558" />
+                    </View>
+                  </View>
+                ))}
+                <Text style={s.label}>📝 หมายเหตุ</Text>
                 <View style={s.inputBox}>
                   <TextInput style={[s.input,{fontSize:16}]} value={note} onChangeText={setNote} placeholder="วันนี้ฝนตก..." placeholderTextColor="#3A4558" />
                 </View>
@@ -261,20 +298,20 @@ export default function CashShiftScreen() {
                   <View style={s.statsRow}>
                     <View style={s.statItem}>
                       <Text style={s.statVal}>{session.startCash.toLocaleString()}</Text>
-                      <Text style={s.statLab}>เงินเริ่มต้น ฿</Text>
+                      <Text style={s.statLab}>เงินสดเริ่ม ฿</Text>
                     </View>
+                    {session.startBankAmount && (
+                      <View style={s.statItem}>
+                        <Text style={[s.statVal,{color:"#FFA500"}]}>{session.startBankAmount.toLocaleString()}</Text>
+                        <Text style={s.statLab}>ธนาคารเริ่ม ฿</Text>
+                      </View>
+                    )}
                     <View style={s.statItem}>
                       <Text style={[s.statVal,{color:"#FFA500"}]}>
-                        {Math.floor(elapsed/60)>0?`${Math.floor(elapsed/60)}ชม.${elapsed%60}น.`:`${elapsed} นาที`}
+                        {Math.floor(elapsed/60)>0?`${Math.floor(elapsed/60)}ชม.${elapsed%60}น.`:`${elapsed} น.`}
                       </Text>
                       <Text style={s.statLab}>เวลาทำงาน</Text>
                     </View>
-                    {session.fuelLevel && (
-                      <View style={s.statItem}>
-                        <Text style={s.statVal}>{session.fuelLevel}</Text>
-                        <Text style={s.statLab}>น้ำมัน</Text>
-                      </View>
-                    )}
                   </View>
                   {session.note ? <Text style={s.noteText}>📝 {session.note}</Text> : null}
                 </LinearGradient>
@@ -283,14 +320,14 @@ export default function CashShiftScreen() {
                   <Text style={s.cardTitle}>🛑 จบงาน</Text>
                   <View style={s.divider} />
                   {[
-                    ["เงินสดหลังจบ (฿)", endCash, setEndCash],
-                    ["เงินในแอพ (฿)", appIncome, setAppIncome],
-                    ["ค่าน้ำมัน (฿)", fuelCost, setFuelCost],
+                    ["💵 เงินสดหลังจบ (฿)", endCash, setEndCash],
+                    ["🏦 เงินในบัญชีธนาคาร (฿)", endBank, setEndBank],
+                    ["📱 เงินในแอพ (฿)", appIncome, setAppIncome],
+                    ["⛽ ค่าน้ำมัน (฿)", fuelCost, setFuelCost],
                   ].map(([lbl,val,set]) => (
                     <View key={lbl}>
                       <Text style={s.label}>{lbl}</Text>
                       <View style={s.inputBox}>
-                        <Text style={s.prefix}>฿</Text>
                         <TextInput style={s.input} value={val} onChangeText={set} keyboardType="numeric" placeholder="0" placeholderTextColor="#3A4558" />
                       </View>
                     </View>
@@ -305,6 +342,12 @@ export default function CashShiftScreen() {
                         <Text style={s.previewLab}>🔥 กำไรสุทธิ</Text>
                         <Text style={[s.previewVal,{color:previewProfit>=0?"#00C49A":"#FF3B4E"}]}>{previewProfit.toLocaleString()} ฿</Text>
                       </View>
+                      {endBank && session.startBankAmount && (
+                        <View style={s.previewRow}>
+                          <Text style={s.previewLab}>🏦 เงินธนาคารเพิ่ม</Text>
+                          <Text style={[s.previewVal,{color:"#FFA500"}]}>{(parseFloat(endBank)-session.startBankAmount).toLocaleString()} ฿</Text>
+                        </View>
+                      )}
                     </View>
                   )}
                   <TouchableOpacity onPress={endShift}>
@@ -318,7 +361,7 @@ export default function CashShiftScreen() {
           </View>
         )}
 
-        {/* ── HISTORY TAB ── */}
+        {/* ── HISTORY ── */}
         {tab === "history" && (
           <View style={s.section}>
             <View style={s.summaryRow}>
@@ -339,7 +382,6 @@ export default function CashShiftScreen() {
             {history.length === 0 ? (
               <View style={s.emptyBox}>
                 <Text style={s.emptyText}>ยังไม่มีประวัติ</Text>
-                <Text style={s.emptySub}>เริ่มงานแล้วจบงานเพื่อดูประวัติ</Text>
               </View>
             ) : history.map((h) => {
               const d = new Date(h.startedAt);
@@ -354,19 +396,40 @@ export default function CashShiftScreen() {
                       <Text style={s.histDate}>📅 {date}</Text>
                       <Text style={s.histTime}>{startTime} — {endTime} ({Math.floor(el/60)>0?`${Math.floor(el/60)}ชม.`:""}{el%60}น.)</Text>
                     </View>
-                    <TouchableOpacity onPress={() => deleteHistory(h.id)} style={s.delBtn}>
-                      <Text style={s.delBtnText}>🗑️</Text>
-                    </TouchableOpacity>
+                    <View style={{flexDirection:"row",gap:8}}>
+                      <TouchableOpacity onPress={() => openEdit(h)} style={s.editBtn}>
+                        <Text style={s.editBtnText}>✏️</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => deleteHistory(h.id)} style={s.delBtn}>
+                        <Text style={s.delBtnText}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                   {h.note ? <Text style={s.histNote}>📝 {h.note}</Text> : null}
                   <View style={s.histStats}>
-                    {[["เริ่มต้น",h.startCash,"#8A9BB0"],["หลังจบ",h.endCash,"#FFFFFF"],["แอพ",h.appIncome,"#00C49A"],["น้ำมัน",h.fuelCost,"#FF4757"]].map(([lbl,val,col]) => (
+                    {[["เงินสดเริ่ม",h.startCash,"#8A9BB0"],["เงินสดจบ",h.endCash,"#FFFFFF"],["แอพ",h.appIncome,"#00C49A"],["น้ำมัน",h.fuelCost,"#FF4757"]].map(([lbl,val,col]) => (
                       <View key={lbl} style={s.hStat}>
                         <Text style={[s.hStatVal,{color:col}]}>{(val||0).toLocaleString()}</Text>
                         <Text style={s.hStatLab}>{lbl} ฿</Text>
                       </View>
                     ))}
                   </View>
+                  {(h.startBankAmount || h.endBankAmount) && (
+                    <View style={s.bankRow}>
+                      {h.startBankAmount && (
+                        <View style={s.bankBox}>
+                          <Text style={s.bankLbl}>🏦 ธนาคารเริ่ม</Text>
+                          <Text style={s.bankVal}>{h.startBankAmount.toLocaleString()} ฿</Text>
+                        </View>
+                      )}
+                      {h.endBankAmount && (
+                        <View style={s.bankBox}>
+                          <Text style={s.bankLbl}>🏦 ธนาคารจบ</Text>
+                          <Text style={s.bankVal}>{h.endBankAmount.toLocaleString()} ฿</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
                   <View style={s.histFoot}>
                     <View style={s.profBox}>
                       <Text style={s.profLab}>📈 รายรับรวม</Text>
@@ -385,6 +448,49 @@ export default function CashShiftScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Edit Modal */}
+      <Modal visible={editModal} animationType="slide" transparent>
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <Text style={s.modalTitle}>✏️ แก้ไขข้อมูล</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {[
+                ["💵 เงินสดเริ่มต้น", "startCash"],
+                ["🏦 ธนาคารเริ่ม", "startBankAmount"],
+                ["💵 เงินสดจบ", "endCash"],
+                ["🏦 ธนาคารจบ", "endBankAmount"],
+                ["📱 เงินในแอพ", "appIncome"],
+                ["⛽ ค่าน้ำมัน", "fuelCost"],
+                ["⛽ น้ำมัน%", "fuelLevel"],
+                ["📝 หมายเหตุ", "note"],
+              ].map(([lbl, key]) => (
+                <View key={key}>
+                  <Text style={s.label}>{lbl}</Text>
+                  <View style={s.inputBox}>
+                    <TextInput
+                      style={[s.input, {fontSize:18}]}
+                      value={editData[key] || ""}
+                      onChangeText={v => setEditData({...editData, [key]: v})}
+                      keyboardType={key === "note" || key === "fuelLevel" ? "default" : "numeric"}
+                      placeholder="0"
+                      placeholderTextColor="#3A4558"
+                    />
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+            <View style={{flexDirection:"row", gap:10, marginTop:16}}>
+              <TouchableOpacity style={[s.modalBtn,{backgroundColor:"#252D3D"}]} onPress={() => setEditModal(false)}>
+                <Text style={[s.modalBtnText,{color:"#8A9BB0"}]}>ยกเลิก</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.modalBtn,{backgroundColor:"#00C49A"}]} onPress={saveEdit}>
+                <Text style={[s.modalBtnText,{color:"#0D1117"}]}>บันทึก</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -393,7 +499,7 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0D1117" },
   center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#0D1117" },
   header: { paddingTop: 56, paddingBottom: 16, paddingHorizontal: 24 },
-  headerTitle: { fontSize: 28, fontWeight: "800", color: "#fff" },
+  headerTitle: { fontSize: 24, fontWeight: "800", color: "#fff" },
   headerSub: { fontSize: 14, color: "#8A9BB0", marginTop: 4 },
   tabRow: { flexDirection: "row", paddingHorizontal: 24, paddingVertical: 12, gap: 8 },
   tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: "center", backgroundColor: "#1A1F2E", borderWidth: 1, borderColor: "#252D3D" },
@@ -407,8 +513,6 @@ const s = StyleSheet.create({
   label: { fontSize: 12, color: "#8A9BB0", fontWeight: "600", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, marginTop: 12 },
   inputBox: { flexDirection: "row", alignItems: "center", backgroundColor: "#0D1117", borderRadius: 12, paddingHorizontal: 14, borderWidth: 1, borderColor: "#252D3D" },
   input: { flex: 1, fontSize: 24, fontWeight: "800", color: "#fff", paddingVertical: 12 },
-  prefix: { fontSize: 20, color: "#8A9BB0", marginRight: 8 },
-  suffix: { fontSize: 16, color: "#8A9BB0", marginLeft: 4 },
   btn: { borderRadius: 16, paddingVertical: 18, alignItems: "center", marginTop: 16 },
   btnText: { fontSize: 18, fontWeight: "800", color: "#fff" },
   goBtn: { marginTop: 12, backgroundColor: "#00C49A22", borderRadius: 10, padding: 10, alignItems: "center" },
@@ -441,12 +545,21 @@ const s = StyleSheet.create({
   hStat: { flex: 1, alignItems: "center", backgroundColor: "#0D1117", borderRadius: 8, padding: 8 },
   hStatVal: { fontSize: 13, fontWeight: "800" },
   hStatLab: { fontSize: 9, color: "#8A9BB0", marginTop: 2, textAlign: "center" },
+  bankRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
+  bankBox: { flex: 1, backgroundColor: "#FFA50022", borderRadius: 10, padding: 10 },
+  bankLbl: { fontSize: 11, color: "#FFA500" },
+  bankVal: { fontSize: 14, fontWeight: "800", color: "#FFA500", marginTop: 2 },
   histFoot: { flexDirection: "row", gap: 8 },
   profBox: { flex: 1, backgroundColor: "#00C49A22", borderRadius: 10, padding: 10, alignItems: "center" },
   profLab: { fontSize: 11, color: "#8A9BB0" },
   profVal: { fontSize: 15, fontWeight: "800", color: "#00C49A", marginTop: 2 },
+  editBtn: { padding: 8, backgroundColor: "#FFA50022", borderRadius: 8 },
+  editBtnText: { fontSize: 16 },
   delBtn: { padding: 8, backgroundColor: "#FF3B4E22", borderRadius: 8 },
   delBtnText: { fontSize: 16 },
-  activeCard: { borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: "#00C49A44" },
-  activeTitle: { fontSize: 18, fontWeight: "800", color: "#00C49A", marginBottom: 12 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
+  modalCard: { backgroundColor: "#1A1F2E", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: "85%", borderWidth: 1, borderColor: "#252D3D" },
+  modalTitle: { fontSize: 20, fontWeight: "800", color: "#fff", marginBottom: 16 },
+  modalBtn: { flex: 1, borderRadius: 14, paddingVertical: 16, alignItems: "center" },
+  modalBtnText: { fontSize: 16, fontWeight: "800" },
 });
